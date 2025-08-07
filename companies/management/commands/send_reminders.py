@@ -13,7 +13,7 @@ class Command(BaseCommand):
         # Use real date or simulated one for testing
         today = timezone.now().date()
         # Simulated test date
-        today = date(2025, 8, 6)
+        # today = date(2025, 8, 6)
 
         companies = Company.objects.all()
 
