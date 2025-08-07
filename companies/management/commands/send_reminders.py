@@ -11,7 +11,7 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         today = timezone.now().date()
         # FOR TESTING — you can simulate any date like this:
-        # today = date(2025, 8, 5)
+        today = date(2025, 8, 6)
 
         companies = Company.objects.all()
 
