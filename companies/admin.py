@@ -192,8 +192,8 @@ class ShareholderAdmin(ImportExportModelAdmin):
 
 @admin.register(ContactPerson)
 class ContactPersonAdmin(ImportExportModelAdmin):
-    list_display = ('name', 'position', 'phone_number', 'email_address', 'company')
-    search_fields = ('name', 'email_address')
+    list_display = ('name', 'position', 'phone_number', 'email', 'company')
+    search_fields = ('name', 'email')
 
 @admin.register(ComplianceInformation)
 class ComplianceInformationAdmin(ImportExportModelAdmin):
