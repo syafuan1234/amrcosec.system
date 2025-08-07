@@ -88,7 +88,7 @@ class ContactPersonInline(admin.StackedInline):
     fieldsets = [
         ('Contact Person Info', {
             'classes': ('collapse',),
-            'fields': ('name', 'position', 'phone_number', 'email_address')
+            'fields': ('name', 'position', 'phone_number', 'email')
         }),
     ]
 
