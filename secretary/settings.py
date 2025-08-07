@@ -84,12 +84,12 @@ WSGI_APPLICATION = 'secretary.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
+import dj_database_url
+
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
+    'default': dj_database_url.config(default='postgresql://mysecretary_db_user:QXap08JYPe9Iqajeae7O5ICfiPfkHNXy@dpg-d28rljvdiees73f9rl6g-a.oregon-postgres.render.com/mysecretary_db')
 }
+
 
 
 # Password validation
@@ -148,6 +148,6 @@ EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
 
-EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER')  # your Gmail address
-EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD')  # your app password
+EMAIL_HOST_USER = 'amrcosec.system@gmail.com'  # your Gmail address
+EMAIL_HOST_PASSWORD = 'mvqy uchp irpt budm'  # your app password
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
