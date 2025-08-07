@@ -6,7 +6,7 @@ from django.core.mail import send_mail
 from django.conf import settings
 
 
-class Commands(BaseCommand):
+class Command(BaseCommand):
     help = 'Send anniversary compliance reminder emails'
 
     def handle(self, *args, **options):
