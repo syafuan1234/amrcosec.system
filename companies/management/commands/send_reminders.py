@@ -56,11 +56,9 @@ class Command(BaseCommand):
                     recipients.append(director.email)
 
             # Add contact person if they exist and not already included
-            if hasattr(company, 'contactperson'):
-                contact = company.contactperson
-                print(f"Found contact person for {company.company_name}: {contact.email}")
-                if contact.email and contact.email not in recipients:
-                    recipients.append(contact.email)
+            contact_person = ContactPerson.objects.filter(company=company).first()
+            if contact_person and contact_person.email and contact_person.email not in recipients:
+                recipients.append(contact_person.email)
 
             if not recipients:
                 self.stdout.write(self.style.WARNING(f"⚠️ No email found for {company.company_name}"))
