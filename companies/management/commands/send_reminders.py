@@ -58,6 +58,7 @@ class Command(BaseCommand):
             # Add contact person if they exist and not already included
             if hasattr(company, 'contactperson'):
                 contact = company.contactperson
+                print(f"Found contact person for {company.company_name}: {contact.email}")
                 if contact.email and contact.email not in recipients:
                     recipients.append(contact.email)
 
