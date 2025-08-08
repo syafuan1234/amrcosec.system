@@ -61,7 +61,7 @@ You are receiving this email 30 days in advance of your company's anniversary da
 
 Here are your company details:
   • Company Name: {company.company_name}
-  • SSM Number: {company.registration_number}
+  • SSM Number: {company.ssm_number}
   • Incorporation Date: {company.incorporation_date.strftime('%Y-%m-%d')}
   • Anniversary Date: {anniversary.strftime('%Y-%m-%d')}
 
