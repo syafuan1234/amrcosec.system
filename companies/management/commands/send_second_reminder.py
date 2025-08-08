@@ -24,7 +24,8 @@ class Command(BaseCommand):
             if anniversary < today:
                 anniversary = anniversary.replace(year=today.year + 1)
 
-            reminder_date = anniversary - timedelta(days=30)
+            reminder_date = anniversary
+            due_date = anniversary + timedelta(days=30)
 
             if today != reminder_date:
                 continue  # Not the reminder day yet
@@ -51,25 +52,25 @@ class Command(BaseCommand):
                 continue
 
             # Email content for 1st reminder
-            subject = f"[FIRST REMINDER] UPCOMING ANNUAL RETURN SUBMISSION FOR {company.company_name}"
+            subject = f"[SECOND REMINDER] ANNUAL RETURN SUBMISSION DUE FOR {company.company_name}"
             message = f"""
 Dear Sir/Madam,
 
-We wish to inform you that your company’s anniversary date is approaching, and your Annual Return will soon be due for submission to the Companies Commission of Malaysia (SSM).
-
-You are receiving this email 30 days in advance of your company's anniversary date.
+This is a reminder that today is your company’s anniversary date, and your Annual Return must be submitted to the Companies Commission of Malaysia (SSM) within 30 days from today.
 
 Here are your company details:
   • Company Name: {company.company_name}
   • SSM Number: {company.ssm_number}
   • Incorporation Date: {company.incorporation_date.strftime('%Y-%m-%d')}
   • Anniversary Date: {anniversary.strftime('%Y-%m-%d')}
+  • Due Date for Annual Return Submission: {due_date.strftime('%Y-%m-%d')}
 
-To ensure timely submission, please be ready to:
-  1. Review the draft Annual Return (to be provided by us); and
-  2. Arrange payment for our service fees of RM450 (excluding SST, if applicable) before the submission is made.
+Under Section 68 of the Companies Act 2016, failure to submit within the stipulated period may result in:
+  • Late filing fee of up to RM200.00; and
+  • Compound of up to RM50,000.00.
 
-Completing this early will give you peace of mind knowing your company remains fully compliant with SSM.
+Completing this early will help ensure your company stays in good standing with SSM and avoids unnecessary penalties. 
+If you have not yet done so, please review the draft Annual Return and arrange payment so we can proceed with the submission.
 
 Thank you.
 
