@@ -19,6 +19,7 @@ class Command(BaseCommand):
                 continue
 
             anniversary = company.incorporation_date.replace(year=today.year)
+            due_date = anniversary + timedelta(days=30)
 
             # Handle edge case: anniversary already passed this year
             if anniversary < today:
@@ -62,8 +63,9 @@ You are receiving this email 30 days in advance of your company's anniversary da
 Here are your company details:
   • Company Name: {company.company_name}
   • SSM Number: {company.ssm_number}
-  • Incorporation Date: {company.incorporation_date.strftime('%Y-%m-%d')}
-  • Anniversary Date: {anniversary.strftime('%Y-%m-%d')}
+  • Incorporation Date: {company.incorporation_date.strftime('%d-%m-%Y')}
+  • Anniversary Date: {anniversary.strftime('%d-%m-%Y')}
+  • Due Date for Annual Return Submission: {due_date.strftime('%d-%m-%Y')}
 
 To ensure timely submission, please be ready to:
   1. Review the draft Annual Return (to be provided by us); and
