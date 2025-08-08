@@ -24,7 +24,7 @@ class Command(BaseCommand):
             if anniversary < today:
                 anniversary = anniversary.replace(year=today.year + 1)
 
-            reminder_date = anniversary + timedelta(days=23)
+            reminder_date = due_date - timedelta(days=7)
             due_date = anniversary + timedelta(days=30)
 
             if today != reminder_date:
