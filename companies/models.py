@@ -128,7 +128,7 @@ class Shareholder(models.Model):
 
 # Contact Person Model
 class ContactPerson(models.Model):
-    company = models.ForeignKey(Company, on_delete=models.CASCADE)
+    company = models.OneToOneField(Company, on_delete=models.CASCADE, related_name='contactperson')
     name = models.CharField(max_length=255)
     phone_number = models.CharField(max_length=20)
     email = models.EmailField()

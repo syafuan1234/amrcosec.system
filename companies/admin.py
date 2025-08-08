@@ -84,7 +84,10 @@ class ShareholderInline(admin.StackedInline):
 class ContactPersonInline(admin.StackedInline):
     model = ContactPerson
     extra = 0
+    max_num = 1  # ✅ Allow only one contact person
+    can_delete = True  # Optional: allow delete so a new one can be added later
     show_change_link = True
+
     fieldsets = [
         ('Contact Person Info', {
             'classes': ('collapse',),
@@ -194,6 +197,15 @@ class ShareholderAdmin(ImportExportModelAdmin):
 class ContactPersonAdmin(ImportExportModelAdmin):
     list_display = ('name', 'position', 'phone_number', 'email', 'company')
     search_fields = ('name', 'email')
+
+    def get_form(self, request, obj=None, **kwargs):
+        form = super().get_form(request, obj, **kwargs)
+
+        if not obj:  # Only restrict on Add form
+            used_company_ids = ContactPerson.objects.values_list('company_id', flat=True)
+            form.base_fields['company'].queryset = Company.objects.exclude(id__in=used_company_ids)
+
+        return form
 
 @admin.register(ComplianceInformation)
 class ComplianceInformationAdmin(ImportExportModelAdmin):
