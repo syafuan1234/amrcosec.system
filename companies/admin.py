@@ -6,6 +6,8 @@ from import_export import resources, fields
 from django.forms.models import BaseInlineFormSet
 from import_export.widgets import ForeignKeyWidget
 from django.utils.html import format_html
+from django.urls import reverse
+
 
 
 
@@ -164,12 +166,16 @@ class CompanyResource(resources.ModelResource):
 class CompanyAdmin(ImportExportModelAdmin, ExportMixin, admin.ModelAdmin):
     resource_class = CompanyResource
 
-    list_display = ('company_name', 'ssm_number', 'incorporation_date', 'amr_cosec_branch')
+    list_display = ('company_name', 'ssm_number', 'incorporation_date', 'amr_cosec_branch', 'generate_doc_button')
     search_fields = ('company_name', 'ssm_number')
     inlines = [DirectorInline, ShareholderInline, ContactPersonInline, ComplianceInformationInline]
 
     def generate_doc_button(self, obj):
-        return format_html('<a class="button" href="/generate-doc/{}/">Generate Document</a>', obj.id)
+        url = reverse('generate_company_doc', args=[obj.id])
+        return format_html(
+            '<a class="button" style="padding:3px 8px; background:#28a745; color:white; border-radius:3px; text-decoration:none;" href="{}">Generate Document</a>',
+            url
+        )
     generate_doc_button.short_description = "Document"
     generate_doc_button.allow_tags = True
 

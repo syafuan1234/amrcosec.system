@@ -151,3 +151,6 @@ EMAIL_USE_TLS = True
 EMAIL_HOST_USER = 'amrcosec.system@gmail.com'  # your Gmail address
 EMAIL_HOST_PASSWORD = 'mvqy uchp irpt budm'  # your app password
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+
