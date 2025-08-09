@@ -7,7 +7,7 @@ from companies.models import Company, Director, ContactPerson
 
 
 class Command(BaseCommand):
-    help = 'Send 1st reminder 30 days before anniversary date'
+    help = 'Send 3rd reminder 7 days before due date'
 
     def add_arguments(self, parser):
         parser.add_argument(

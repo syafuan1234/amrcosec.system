@@ -6,6 +6,7 @@ from import_export import resources, fields
 from django.forms.models import BaseInlineFormSet
 from import_export.widgets import ForeignKeyWidget
 from import_export.results import RowResult
+from tablib.exceptions import SkipRow
 
 # --- INLINE ADMIN CONFIGS ---
 
@@ -163,7 +164,7 @@ class CompanyResource(resources.ModelResource):
         reg_no = row.get('ssm_number')
         if Company.objects.filter(ssm_number=reg_no).exists():
             # Tell import-export to skip this row
-            raise resources.exceptions.SkipRow()
+            raise SkipRow()
         
 
 # --- MAIN ADMIN REGISTRATION ---
