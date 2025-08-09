@@ -5,6 +5,8 @@ from import_export.admin import ExportMixin
 from import_export import resources, fields
 from django.forms.models import BaseInlineFormSet
 from import_export.widgets import ForeignKeyWidget
+from django.utils.html import format_html
+
 
 
 # --- INLINE ADMIN CONFIGS ---
@@ -165,6 +167,11 @@ class CompanyAdmin(ImportExportModelAdmin, ExportMixin, admin.ModelAdmin):
     list_display = ('company_name', 'ssm_number', 'incorporation_date', 'amr_cosec_branch')
     search_fields = ('company_name', 'ssm_number')
     inlines = [DirectorInline, ShareholderInline, ContactPersonInline, ComplianceInformationInline]
+
+    def generate_doc_button(self, obj):
+        return format_html('<a class="button" href="/generate-doc/{}/">Generate Document</a>', obj.id)
+    generate_doc_button.short_description = "Document"
+    generate_doc_button.allow_tags = True
 
 @admin.register(Director)
 class DirectorAdmin(ImportExportModelAdmin):
