@@ -73,7 +73,7 @@ class Command(BaseCommand):
                 continue
 
             # Email content
-            subject = f"[FIRST REMINDER] UPCOMING ANNUAL RETURN SUBMISSION FOR {company.company_name}"
+            subject = f"[SECOND REMINDER] ANNUAL RETURN SUBMISSION DUE FOR {company.company_name}"
             message = f"""
 Dear Sir/Madam,
 

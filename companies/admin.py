@@ -160,8 +160,8 @@ class CompanyResource(resources.ModelResource):
         Called before each row is imported.
         Skip the row if the company already exists.
         """
-        reg_no = row.get('registration_number')
-        if Company.objects.filter(registration_number=reg_no).exists():
+        reg_no = row.get('ssm_number')
+        if Company.objects.filter(ssm_number=reg_no).exists():
             # Tell import-export to skip this row
             raise resources.exceptions.SkipRow()
         
