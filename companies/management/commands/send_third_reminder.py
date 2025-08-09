@@ -5,54 +5,75 @@ from datetime import timedelta
 
 from companies.models import Company, Director, ContactPerson
 
+
 class Command(BaseCommand):
-    help = 'Send 3rd reminder 7 days before due date'
+    help = 'Send 1st reminder 30 days before anniversary date'
+
+    def add_arguments(self, parser):
+        parser.add_argument(
+            '--test',
+            action='store_true',
+            help='Send reminder regardless of date (for testing purposes)'
+        )
 
     def handle(self, *args, **kwargs):
-        today = timezone.now().date()
+        today = timezone.localtime(timezone.now()).date()
+        test_mode = kwargs['test']
 
         companies = Company.objects.all()
 
         for company in companies:
             if not company.incorporation_date:
-                self.stdout.write(self.style.WARNING(f"❌ Skipped {company.company_name}: No incorporation date"))
+                self.stdout.write(self.style.WARNING(
+                    f"❌ Skipped {company.company_name}: No incorporation date"
+                ))
                 continue
 
+            # Calculate anniversary and due date
             anniversary = company.incorporation_date.replace(year=today.year)
-
-            # Handle edge case: anniversary already passed this year
             if anniversary < today:
                 anniversary = anniversary.replace(year=today.year + 1)
 
-            reminder_date = anniversary + timedelta(days=23)
             due_date = anniversary + timedelta(days=30)
+            reminder_date = anniversary + timedelta(days=23)
 
-            if today != reminder_date:
-                continue  # Not the reminder day yet
+            # Date check
+            if not test_mode:
+                if today != reminder_date:
+                    self.stdout.write(
+                        f"⏭ Skipped {company.company_name}: Today ({today}) is not reminder date ({reminder_date})"
+                    )
+                    continue
+            else:
+                self.stdout.write(self.style.WARNING(
+                    f"⚠ TEST MODE: Sending for {company.company_name} even though today ({today}) != reminder date ({reminder_date})"
+                ))
 
             # Collect recipients
             recipients = []
 
-            # Add all director emails
+            # Directors
             directors = Director.objects.filter(company=company)
             for director in directors:
                 if director.email and director.email not in recipients:
                     recipients.append(director.email)
 
-            # Add contact person email if not in director list
+            # Contact person
             try:
                 contact = ContactPerson.objects.get(company=company)
                 if contact.email and contact.email not in recipients:
                     recipients.append(contact.email)
             except ContactPerson.DoesNotExist:
-                pass  # No contact person
+                pass
 
             if not recipients:
-                self.stdout.write(self.style.WARNING(f"⚠️ No email found for {company.company_name}"))
+                self.stdout.write(self.style.WARNING(
+                    f"⚠ No email found for {company.company_name}"
+                ))
                 continue
 
-            # Email content for 1st reminder
-            subject = f"[THIRD REMINDER] URGENT - ANNUAL RETURN DUE SOON FOR {company.company_name}"
+            # Email content
+            subject = f"[FIRST REMINDER] UPCOMING ANNUAL RETURN SUBMISSION FOR {company.company_name}"
             message = f"""
 Dear Sir/Madam,
 
@@ -82,6 +103,10 @@ AMR Secretarial Services Sdn. Bhd. and its related companies
 
             try:
                 send_mail(subject, message, None, recipients)
-                self.stdout.write(self.style.SUCCESS(f"✅ Email sent to {company.company_name}: {', '.join(recipients)}"))
+                self.stdout.write(self.style.SUCCESS(
+                    f"✅ Email sent to {company.company_name}: {', '.join(recipients)}"
+                ))
             except Exception as e:
-                self.stdout.write(self.style.ERROR(f"❌ Failed to send for {company.company_name}: {str(e)}"))
+                self.stdout.write(self.style.ERROR(
+                    f"❌ Failed to send for {company.company_name}: {str(e)}"
+                ))

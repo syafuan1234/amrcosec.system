@@ -17,7 +17,7 @@ class Command(BaseCommand):
         )
 
     def handle(self, *args, **kwargs):
-        today = timezone.now().date()
+        today = timezone.localtime(timezone.now()).date()
         test_mode = kwargs['test']
 
         companies = Company.objects.all()
