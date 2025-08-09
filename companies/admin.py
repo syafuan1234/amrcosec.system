@@ -5,6 +5,7 @@ from import_export.admin import ExportMixin
 from import_export import resources, fields
 from django.forms.models import BaseInlineFormSet
 from import_export.widgets import ForeignKeyWidget
+from import_export.results import RowResult
 
 # --- INLINE ADMIN CONFIGS ---
 
@@ -139,6 +140,8 @@ class CompanyResource(resources.ModelResource):
     class Meta:
         model = Company
         import_id_fields = ['ssm_number']  # use this to check for existing records
+        skip_unchanged = True
+        report_skipped = True
         fields = (
             'id',
             'company_name',
@@ -151,14 +154,18 @@ class CompanyResource(resources.ModelResource):
             'auditor',
             'tax_agent',
         )
-        skip_unchanged = True
-        report_skipped = True
+
 
     def before_import_row(self, row, **kwargs):
-        ssm_number = row.get('ssm_number')
-        if ssm_number and Company.objects.filter(ssm_number=ssm_number).exists():
-            # Skip duplicate company
-            raise Exception(f"Skipping duplicate: {ssm_number}")
+        """
+        Called before each row is imported.
+        Skip the row if the company already exists.
+        """
+        reg_no = row.get('ssm_number')
+        if Company.objects.filter(ssm_number=reg_no).exists():
+            # Tell import-export to skip this row
+            raise resources.exceptions.SkipRow()
+        
 
 # --- MAIN ADMIN REGISTRATION ---
 
