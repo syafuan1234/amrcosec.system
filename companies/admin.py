@@ -138,6 +138,7 @@ class CompanyResource(resources.ModelResource):
 
     class Meta:
         model = Company
+        import_id_fields = ['ssm_number']  # use this to check for existing records
         fields = (
             'id',
             'company_name',
@@ -150,6 +151,14 @@ class CompanyResource(resources.ModelResource):
             'auditor',
             'tax_agent',
         )
+        skip_unchanged = True
+        report_skipped = True
+
+    def before_import_row(self, row, **kwargs):
+        ssm_number = row.get('ssm_number')
+        if ssm_number and Company.objects.filter(ssm_number=ssm_number).exists():
+            # Skip duplicate company
+            raise Exception(f"Skipping duplicate: {ssm_number}")
 
 # --- MAIN ADMIN REGISTRATION ---
 

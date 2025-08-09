@@ -16,7 +16,7 @@ BRANCH_CHOICES = [
 # Company Model
 class Company(models.Model):
     company_name = models.CharField(max_length=255, blank=True, null=True)
-    ssm_number = models.CharField(max_length=50)
+    ssm_number = models.CharField(max_length=50, unique = True)
     incorporation_date = models.DateField(blank=True, null=True)
     amr_cosec_branch = models.CharField(
         max_length=50,
