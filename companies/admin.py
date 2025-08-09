@@ -6,7 +6,7 @@ from import_export import resources, fields
 from django.forms.models import BaseInlineFormSet
 from import_export.widgets import ForeignKeyWidget
 from import_export.results import RowResult
-from tablib.exceptions import SkipRow
+from import_export.exceptions import SkipRow
 
 # --- INLINE ADMIN CONFIGS ---
 
