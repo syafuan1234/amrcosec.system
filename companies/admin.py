@@ -156,15 +156,13 @@ class CompanyResource(resources.ModelResource):
         )
 
 
-    def before_import_row(self, row, **kwargs):
-        """
-        Called before each row is imported.
-        Skip the row if the company already exists.
-        """
-        ssm_number = row.get('ssm_number')
-        if Company.objects.filter(ssm_number=ssm_number).exists():
-            # Tell import-export to skip this row
-            raise resources.exceptions.SkipRow()
+    
+    def skip_row(self, instance, original):
+        # Called for each row before import
+        return Company.objects.filter(
+            name=instance.name,
+            ssm_number=instance.ssm_number
+        ).exists()
         
 
 # --- MAIN ADMIN REGISTRATION ---
