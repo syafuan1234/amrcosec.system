@@ -5,8 +5,7 @@ from import_export.admin import ExportMixin
 from import_export import resources, fields
 from django.forms.models import BaseInlineFormSet
 from import_export.widgets import ForeignKeyWidget
-from import_export.results import RowResult
-from import_export.exceptions import SkipRow
+
 
 # --- INLINE ADMIN CONFIGS ---
 
@@ -155,16 +154,6 @@ class CompanyResource(resources.ModelResource):
             'auditor',
             'tax_agent',
         )
- 
-    def before_import_row(self, row, **kwargs):
-        """
-        Called before each row is imported.
-        Skip the row if the company already exists.
-        """
-        reg_no = row.get('ssm_number')
-        if Company.objects.filter(ssm_number=reg_no).exists():
-            # Tell import-export to skip this row
-            raise SkipRow()
         
 
 # --- MAIN ADMIN REGISTRATION ---
