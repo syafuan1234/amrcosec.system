@@ -154,15 +154,16 @@ class CompanyResource(resources.ModelResource):
             'auditor',
             'tax_agent',
         )
-
-
-    
-    def skip_row(self, instance, original):
-        # Called for each row before import
-        return Company.objects.filter(
-            name=instance.name,
-            ssm_number=instance.ssm_number
-        ).exists()
+ 
+    def before_import_row(self, row, **kwargs):
+        """
+        Called before each row is imported.
+        Skip the row if the company already exists.
+        """
+        reg_no = row.get('registration_number')
+        if Company.objects.filter(registration_number=reg_no).exists():
+            # Tell import-export to skip this row
+            raise resources.exceptions.SkipRow()
         
 
 # --- MAIN ADMIN REGISTRATION ---
