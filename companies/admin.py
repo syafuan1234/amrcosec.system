@@ -169,7 +169,7 @@ class DocumentTemplateAdmin(admin.ModelAdmin):
     list_filter = ('per_director',)
     search_fields = ('name',)
     ordering = ('-created_at',)
-    fields = ('name', 'github_url')
+    fields = ('name', 'github_url', 'per_director')
 
     def file_url_link(self, obj):
         if obj.file_url:
