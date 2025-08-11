@@ -143,6 +143,7 @@ class DocumentTemplate(models.Model):
     name = models.CharField(max_length=255)
     github_url = models.URLField(default="https://example.com")
   # <-- we are using this now, not file_url
+    per_director = models.BooleanField(default=False, help_text="Generate one document per director when checked")
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):

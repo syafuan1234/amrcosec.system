@@ -165,7 +165,8 @@ class CompanyResource(resources.ModelResource):
 
 @admin.register(DocumentTemplate)
 class DocumentTemplateAdmin(admin.ModelAdmin):
-    list_display = ('name', 'github_url', 'created_at')  # Show clickable URL
+    list_display = ('name', 'github_url', 'created_at', 'per_director')  # Show clickable URL
+    list_filter = ('per_director',)
     search_fields = ('name',)
     ordering = ('-created_at',)
     fields = ('name', 'github_url')
