@@ -6,7 +6,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse
 
 from .forms import DirectorForm
-from .models import Company  # ✅ Needed for document generation
+from .models import Company, DocumentTemplate  # ✅ Needed for document generation
 from docxtpl import DocxTemplate  # ✅ New import for document auto generator
 
 
@@ -54,31 +54,48 @@ def add_director(request):
 
 # === New Function for Document Auto Generation ===
 
-def generate_company_doc(request, company_id):
-    # 1. Get company data
+def choose_template(request, company_id):
     company = get_object_or_404(Company, id=company_id)
+    templates = DocumentTemplate.objects.all().order_by('-created_at')
 
-    # 2. Load the Word template
-    template_path = os.path.join(settings.BASE_DIR, 'templates', 'docs', 'template.docx')
-    doc = DocxTemplate(template_path)
+    if request.method == 'POST':
+        template_id = request.POST.get('template_id')
+        if template_id:
+            return redirect('generate_company_doc', company_id=company.id, template_id=int(template_id))
+    # GET: show form
+    return render(request, 'companies/choose_template.html', {
+        'company': company,
+        'templates': templates,
+    })
 
-    # 3. Context for placeholders in template.docx
+def generate_company_doc(request, company_id, template_id):
+    company = get_object_or_404(Company, id=company_id)
+    doc_template = get_object_or_404(DocumentTemplate, id=template_id)
+
+    # file path on filesystem (works for local filesystem storage)
+    template_path = doc_template.file.path
+
+    # build context (safely convert dates)
+    def safe_date(dt):
+        return dt.strftime("%Y-%m-%d") if dt else ''
+
     context = {
-        "company_name": company.company_name,
-        "ssm_number": company.ssm_number,
-        "incorporation_date": company.incorporation_date.strftime("%Y-%m-%d"),
-        "today": date.today().strftime("%Y-%m-%d"),
+        "company_name": company.company_name or '',
+        "ssm_number": company.ssm_number or '',
+        "incorporation_date": safe_date(company.incorporation_date),
+        "amr_cosec_branch": getattr(company, 'amr_cosec_branch', ''),
+        "generated_date": date.today().strftime("%d %B %Y"),
+        # add more fields as needed
     }
 
-    # 4. Render the document with actual data
+    # render docx
+    doc = DocxTemplate(template_path)
     doc.render(context)
 
-    # 5. Prepare response for download
-    filename = f"{company.company_name}_document.docx"
+    filename = f"{company.company_name or 'company'}_{doc_template.name}.docx"
     response = HttpResponse(
         content_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
     )
-    response["Content-Disposition"] = f'attachment; filename="{filename}"'
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
     doc.save(response)
-
     return response

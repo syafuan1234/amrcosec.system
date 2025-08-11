@@ -171,13 +171,13 @@ class CompanyAdmin(ImportExportModelAdmin, ExportMixin, admin.ModelAdmin):
     inlines = [DirectorInline, ShareholderInline, ContactPersonInline, ComplianceInformationInline]
 
     def generate_doc_button(self, obj):
-        url = reverse('generate_company_doc', args=[obj.id])
+        url = reverse('choose_template', args=[obj.id])
         return format_html(
             '<a class="button" style="padding:3px 8px; background:#28a745; color:white; border-radius:3px; text-decoration:none;" href="{}">Generate Document</a>',
             url
         )
     generate_doc_button.short_description = "Document"
-    generate_doc_button.allow_tags = True
+    
 
 @admin.register(Director)
 class DirectorAdmin(ImportExportModelAdmin):

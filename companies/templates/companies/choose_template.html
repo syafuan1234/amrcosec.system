@@ -1,0 +1,23 @@
+<!-- companies/templates/companies/choose_template.html -->
+{% extends "admin/base_site.html" %}   <!-- or a simple base you have -->
+
+{% block content %}
+  <h1>Generate document for: {{ company.company_name }}</h1>
+
+  {% if templates %}
+    <form method="post">
+      {% csrf_token %}
+      <label for="template_id">Choose template:</label>
+      <select name="template_id" id="template_id">
+        {% for t in templates %}
+          <option value="{{ t.id }}">{{ t.name }} - {{ t.file.name }}</option>
+        {% endfor %}
+      </select>
+      <button type="submit">Generate</button>
+    </form>
+  {% else %}
+    <p>No templates found. Go to Admin → Document Templates to upload .docx templates.</p>
+  {% endif %}
+
+  <p><a href="{% url 'admin:companies_documenttemplate_changelist' %}">Open Document Templates (Admin)</a></p>
+{% endblock %}

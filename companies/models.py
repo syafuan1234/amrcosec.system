@@ -137,7 +137,16 @@ class ContactPerson(models.Model):
     def __str__(self):
         return self.name
 
-from django.db import models
+# companies/models.py
+
+class DocumentTemplate(models.Model):
+    name = models.CharField(max_length=255, help_text="A friendly name for this template (e.g. 'Director Appointment Letter')")
+    file = models.FileField(upload_to='doc_templates/', help_text="Upload a .docx template file")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.name
+
 
 class ComplianceInformation(models.Model):
     company = models.OneToOneField('Company', on_delete=models.CASCADE, related_name='compliance_info')
