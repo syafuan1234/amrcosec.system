@@ -1,4 +1,6 @@
 import os
+import tempfile
+import requests
 from datetime import date
 from django.conf import settings
 from django.http import FileResponse, HttpResponse
@@ -68,12 +70,29 @@ def choose_template(request, company_id):
         'templates': templates,
     })
 
+
 def generate_company_doc(request, company_id, template_id):
     company = get_object_or_404(Company, id=company_id)
     doc_template = get_object_or_404(DocumentTemplate, id=template_id)
 
-    # file path on filesystem (works for local filesystem storage)
-    template_path = doc_template.file.path
+    # Instead of file.path, use GitHub raw link mapping
+    TEMPLATE_LINKS = {
+        1: "https://github.com/syafuan1234/company-doc-templates/raw/refs/heads/main/1.%20SEC%20201%20-%20FIRST%20DIRECTOR.docx",
+        2: "https://github.com/syafuan1234/company-doc-templates/raw/refs/heads/main/2.%20SECTION%20236%20(3)%20-%20DECLARATION%20BEFORE%20APPOINT%20COSEC.docx",
+    }
+
+    template_url = TEMPLATE_LINKS.get(template_id)
+    if not template_url:
+        return HttpResponse("Invalid template ID or link not set.", status=400)
+
+    # Download the file from GitHub
+    r = requests.get(template_url)
+    if r.status_code != 200:
+        return HttpResponse("Error downloading template from GitHub.", status=500)
+
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".docx") as tmp:
+        tmp.write(r.content)
+        tmp_path = tmp.name
 
     # build context (safely convert dates)
     def safe_date(dt):
@@ -85,11 +104,10 @@ def generate_company_doc(request, company_id, template_id):
         "incorporation_date": safe_date(company.incorporation_date),
         "amr_cosec_branch": getattr(company, 'amr_cosec_branch', ''),
         "generated_date": date.today().strftime("%d %B %Y"),
-        # add more fields as needed
     }
 
     # render docx
-    doc = DocxTemplate(template_path)
+    doc = DocxTemplate(tmp_path)
     doc.render(context)
 
     filename = f"{company.company_name or 'company'}_{doc_template.name}.docx"

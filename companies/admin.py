@@ -7,6 +7,7 @@ from django.forms.models import BaseInlineFormSet
 from import_export.widgets import ForeignKeyWidget
 from django.utils.html import format_html
 from django.urls import reverse
+from .models import DocumentTemplate
 
 
 
@@ -162,6 +163,20 @@ class CompanyResource(resources.ModelResource):
 
 # --- MAIN ADMIN REGISTRATION ---
 
+@admin.register(DocumentTemplate)
+class DocumentTemplateAdmin(admin.ModelAdmin):
+    list_display = ('name', 'file_url_link', 'created_at')  # Show clickable URL
+    search_fields = ('name',)
+    ordering = ('-created_at',)
+    fields = ('name', 'file_url')
+
+    def file_url_link(self, obj):
+        if obj.file_url:
+            return format_html('<a href="{}" target="_blank">View Template</a>', obj.file_url)
+        return "-"
+    file_url_link.short_description = "File URL"
+
+
 @admin.register(Company)
 class CompanyAdmin(ImportExportModelAdmin, ExportMixin, admin.ModelAdmin):
     resource_class = CompanyResource
@@ -177,7 +192,7 @@ class CompanyAdmin(ImportExportModelAdmin, ExportMixin, admin.ModelAdmin):
             url
         )
     generate_doc_button.short_description = "Document"
-    
+
 
 @admin.register(Director)
 class DirectorAdmin(ImportExportModelAdmin):
