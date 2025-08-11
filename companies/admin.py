@@ -165,10 +165,10 @@ class CompanyResource(resources.ModelResource):
 
 @admin.register(DocumentTemplate)
 class DocumentTemplateAdmin(admin.ModelAdmin):
-    list_display = ('name', 'file_url_link', 'created_at')  # Show clickable URL
+    list_display = ('name', 'github_url', 'created_at')  # Show clickable URL
     search_fields = ('name',)
     ordering = ('-created_at',)
-    fields = ('name', 'file_url')
+    fields = ('name', 'github_url')
 
     def file_url_link(self, obj):
         if obj.file_url:

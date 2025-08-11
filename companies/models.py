@@ -140,8 +140,9 @@ class ContactPerson(models.Model):
 # companies/models.py
 
 class DocumentTemplate(models.Model):
-    name = models.CharField(max_length=255, help_text="A friendly name for this template (e.g. 'Director Appointment Letter')")
-    file = models.FileField(upload_to='doc_templates/', help_text="Upload a .docx template file")
+    name = models.CharField(max_length=255)
+    github_url = models.URLField(default="https://example.com")
+  # <-- we are using this now, not file_url
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
