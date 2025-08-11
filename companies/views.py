@@ -82,9 +82,8 @@ def generate_company_doc(request, company_id, template_id):
 
     # Keep your existing mapping (unchanged)
     TEMPLATE_LINKS = {
-        1: "https://github.com/syafuan1234/company-doc-templates/raw/refs/heads/main/1.%20SEC%20201%20-%20FIRST%20DIRECTOR.docx",
-        2: "https://github.com/syafuan1234/company-doc-templates/raw/refs/heads/main/2.%20SECTION%20236%20(3)%20-%20DECLARATION%20BEFORE%20APPOINT%20COSEC.docx",
-        3: "https://github.com/syafuan1234/company-doc-templates/raw/refs/heads/main/3.%20RESO%20APPOINT%201ST%20COSEC%20(NEW).docx"
+        1: "https://github.com/syafuan1234/company-doc-templates/raw/refs/heads/main/1.%20SEC%20201%20-%20FIRST%20DIRECTOR.docx"
+
     }
 
     template_url = TEMPLATE_LINKS.get(template_id)
