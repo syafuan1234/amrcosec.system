@@ -13,6 +13,7 @@ from docxtpl import DocxTemplate  # ✅ New import for document auto generator
 
 import io
 import zipfile
+from itertools import zip_longest
 from django.utils.text import slugify
 
 
@@ -106,6 +107,19 @@ def generate_company_doc(request, company_id, template_id):
         directors_qs = company.director_set.all()
         shareholders_qs = company.shareholder_set.all()
 
+        # create director_rows = [ {'left': {...} or None, 'right': {...} or None}, ... ]
+        director_list = list(directors_qs)  # list of Director model instances
+
+        # helper: group into pairs using zip_longest
+        pairs = list(zip_longest(*(iter(director_list),) * 2, fillvalue=None))
+
+        director_rows = []
+        for left, right in pairs:
+            left_dict = {'name': left.full_name, 'ic': getattr(left, 'ic_passport', '')} if left else None
+            right_dict = {'name': right.full_name, 'ic': getattr(right, 'ic_passport', '')} if right else None
+            director_rows.append({'left': left_dict, 'right': right_dict})
+
+
         base_context = {
             "company_name": company.company_name or '',
             "ssm_number": company.ssm_number or '',
@@ -116,6 +130,8 @@ def generate_company_doc(request, company_id, template_id):
             "directors": [{"name": d.full_name, "ic": getattr(d, 'ic_passport', '')} for d in directors_qs],
             "shareholders": [{"name": s.full_name, "ic": getattr(s, 'ic_passport', '')} for s in shareholders_qs],
         }
+        
+        base_context["director_rows"] = director_rows
 
         # ---- Per-director mode: create one file per director and return a ZIP ----
         if getattr(doc_template, "per_director", False):
