@@ -82,7 +82,7 @@ def generate_company_doc(request, company_id, template_id):
 
     # Keep your existing mapping (unchanged)
     TEMPLATE_LINKS = {
-        1: "https://github.com/syafuan1234/company-doc-templates/raw/refs/heads/main/1.%20SEC%20201%20-%20FIRST%20DIRECTOR.docx"
+        1: "https://github.com/syafuan1234/company-doc-templates/raw/refs/heads/main/SECTION%20201%20(FIRST%20DIRECTOR).docx"
 
     }
 
