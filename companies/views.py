@@ -81,14 +81,11 @@ def generate_company_doc(request, company_id, template_id):
     doc_template = get_object_or_404(DocumentTemplate, id=template_id)
 
     # Keep your existing mapping (unchanged)
-    TEMPLATE_LINKS = {
-        1: "https://github.com/syafuan1234/company-doc-templates/raw/refs/heads/main/SECTION%20201%20(FIRST%20DIRECTOR).docx"
 
-    }
-
-    template_url = TEMPLATE_LINKS.get(template_id)
+    template_url = doc_template.github_url
     if not template_url:
-        return HttpResponse("Invalid template ID or link not set.", status=400)
+        return HttpResponse("No GitHub URL set for this template.", status=400)
+
 
     # Download the file from GitHub
     r = requests.get(template_url)
