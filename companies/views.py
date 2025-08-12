@@ -110,14 +110,25 @@ def generate_company_doc(request, company_id, template_id):
         # create director_rows = [ {'left': {...} or None, 'right': {...} or None}, ... ]
         director_list = list(directors_qs)  # list of Director model instances
 
-        # helper: group into pairs using zip_longest
+        from itertools import zip_longest
         pairs = list(zip_longest(*(iter(director_list),) * 2, fillvalue=None))
 
         director_rows = []
         for left, right in pairs:
-            left_dict = {'name': left.full_name, 'ic': getattr(left, 'ic_passport', '')} if left else None
-            right_dict = {'name': right.full_name, 'ic': getattr(right, 'ic_passport', '')} if right else None
-            director_rows.append({'left': left_dict, 'right': right_dict})
+            # Signature line always present above names
+            left_dict = {
+                'name': left.full_name if left else '',
+                'line': '___________________'
+            } if left else None
+
+            if right:
+                right_dict = {
+                    'name': right.full_name,
+                    'line': '___________________'
+                }
+            else:
+                # If no right director, mark as None so template can handle centering
+                right_dict = None
 
 
         base_context = {
@@ -129,6 +140,7 @@ def generate_company_doc(request, company_id, template_id):
             # For templates using loops (docxtpl Jinja):
             "directors": [{"name": d.full_name, "ic": getattr(d, 'ic_passport', '')} for d in directors_qs],
             "shareholders": [{"name": s.full_name, "ic": getattr(s, 'ic_passport', '')} for s in shareholders_qs],
+            "director_rows": director_rows  # 👈 now includes line + name per cell
         }
         
         base_context["director_rows"] = director_rows
