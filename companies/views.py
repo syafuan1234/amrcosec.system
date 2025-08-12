@@ -115,21 +115,20 @@ def generate_company_doc(request, company_id, template_id):
 
         director_rows = []
         for left, right in pairs:
-            # Signature line always present above names
             left_dict = {
                 'name': left.full_name if left else '',
                 'line': '___________________'
             } if left else None
 
-            if right:
-                right_dict = {
-                    'name': right.full_name,
-                    'line': '___________________'
-                }
-            else:
-                # If no right director, mark as None so template can handle centering
-                right_dict = None
+            right_dict = {
+                'name': right.full_name if right else '',
+                'line': '___________________'
+            } if right else None
 
+            director_rows.append({
+                'left': left_dict,
+                'right': right_dict
+            })
 
         base_context = {
             "company_name": company.company_name or '',
