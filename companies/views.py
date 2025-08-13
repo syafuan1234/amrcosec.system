@@ -65,19 +65,26 @@ def add_director(request):
 def choose_template(request, company_id):
     company = get_object_or_404(Company, id=company_id)
     templates = DocumentTemplate.objects.all().order_by('-created_at')
+    directors = company.director_set.all()  # 👈 list of directors for dropdown
 
     if request.method == 'POST':
         template_id = request.POST.get('template_id')
+        director_id = request.POST.get('director_id')  # 👈 new
         if template_id:
-            return redirect('generate_company_doc', company_id=company.id, template_id=int(template_id))
+            return redirect('generate_company_doc_with_director',
+                            company_id=company.id,
+                            template_id=int(template_id),
+                            director_id=director_id or "all")  # 👈 pass 'all' if empty
+
     # GET: show form
     return render(request, 'companies/choose_template.html', {
         'company': company,
         'templates': templates,
+        'directors': directors,  # 👈 send to template
     })
 
 
-def generate_company_doc(request, company_id, template_id):
+def generate_company_doc(request, company_id, template_id, director_id=None):
     company = get_object_or_404(Company, id=company_id)
     doc_template = get_object_or_404(DocumentTemplate, id=template_id)
 
@@ -142,7 +149,25 @@ def generate_company_doc(request, company_id, template_id):
             "director_rows": director_rows  # 👈 now includes line + name per cell
         }
         
-        base_context["director_rows"] = director_rows
+        # === New: handle specific director selection ===
+        if director_id and director_id != "all":
+            director = get_object_or_404(company.director_set, id=director_id)
+            ctx = dict(base_context)
+            ctx.update({
+                "director_name": director.full_name or '',
+                "director_ic": getattr(director, 'ic_passport', '') or '',
+                "director_address": getattr(director, 'residential_address', '') or '',
+                "director_email": getattr(director, 'email', '') or '',
+            })
+            doc = DocxTemplate(tmp_path)
+            doc.render(ctx)
+            filename = f"{slugify(company.company_name)}_{slugify(director.full_name)}_{doc_template.name}.docx"
+            response = HttpResponse(
+                content_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+            )
+            response['Content-Disposition'] = f'attachment; filename="{filename}"'
+            doc.save(response)
+            return response
 
         # ---- Per-director mode: create one file per director and return a ZIP ----
         if getattr(doc_template, "per_director", False):
