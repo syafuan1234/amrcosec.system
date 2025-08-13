@@ -8,7 +8,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse
 
 from .forms import DirectorForm
-from .models import Company, DocumentTemplate  # ✅ Needed for document generation
+from .models import Company, DocumentTemplate, Director  # ✅ Needed for document generation
 from docxtpl import DocxTemplate  # ✅ New import for document auto generator
 
 import io
@@ -65,22 +65,34 @@ def add_director(request):
 def choose_template(request, company_id):
     company = get_object_or_404(Company, id=company_id)
     templates = DocumentTemplate.objects.all().order_by('-created_at')
-    directors = company.director_set.all()  # 👈 list of directors for dropdown
+
+    directors = Director.objects.filter(company=company)  # ✅ FIXED: use correct model
 
     if request.method == 'POST':
         template_id = request.POST.get('template_id')
-        director_id = request.POST.get('director_id')  # 👈 new
+        director_id = request.POST.get('director_id')  # ✅ NEW: capture director choice
+
+        template = get_object_or_404(DocumentTemplate, pk=template_id)
+
+        # ✅ NEW: Fetch selected directors (for preview/validation, not generation here)
+        if director_id == "all":
+            selected_directors = directors
+        else:
+            selected_directors = directors.filter(pk=director_id)
+
         if template_id:
-            return redirect('generate_company_doc_with_director',
-                            company_id=company.id,
-                            template_id=int(template_id),
-                            director_id=director_id or "all")  # 👈 pass 'all' if empty
+            return redirect(
+                'generate_company_doc_with_director',
+                company_id=company.id,
+                template_id=int(template_id),
+                director_id=director_id or "all"  # ✅ NEW: pass "all" if no selection
+            )
 
     # GET: show form
     return render(request, 'companies/choose_template.html', {
         'company': company,
         'templates': templates,
-        'directors': directors,  # 👈 send to template
+        'directors': directors,  # ✅ NEW: pass directors to template
     })
 
 
