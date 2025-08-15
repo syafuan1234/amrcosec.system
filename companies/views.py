@@ -63,10 +63,10 @@ def add_director(request):
 # === New Function for Document Auto Generation ===
 
 def choose_template(request, company_id):
-    company = get_object_or_404(Company, id=company_id)
+    company = get_object_or_404(Company, pk=company_id)
     templates = DocumentTemplate.objects.all().order_by('-created_at')
 
-    directors = Director.objects.filter(company=company)  # ✅ FIXED: use correct model
+    directors = company.director_set.all()  # ✅ always matches the related directors
 
     if request.method == 'POST':
         template_id = request.POST.get('template_id')
