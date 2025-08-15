@@ -22,7 +22,7 @@
     <select name="director_id" id="director_id">
       <option value="all">All Directors</option>
       {% for director in company.director_set.all %}
-        <option value="{{ director.id }}">{{ director.name }}</option>
+        <option value="{{ director.id }}">{{ director.full_name }}</option>
       {% endfor %}
     </select>
     <br><br>
