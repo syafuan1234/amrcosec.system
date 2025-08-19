@@ -73,7 +73,8 @@ def choose_template(request, company_id):
     templates = DocumentTemplate.objects.all().order_by("category", "name")
     templates_by_category = defaultdict(list)
     for t in templates:
-        templates_by_category[t.get_category_display()].append(t)
+        templates_by_category[t.category].append(t)
+
 
     if request.method == 'POST':
         template_id = request.POST.get('template_id')
