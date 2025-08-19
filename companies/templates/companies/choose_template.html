@@ -11,8 +11,8 @@
     <!-- Select Template -->
     <label for="template_id">Choose template:</label>
     <select name="template_id" id="template_id">
-      {% for category, templates_in_category in templates_by_category.items %}
-        <optgroup label="{{ templates_in_category.0.get_category_display }}">
+      {% for category, templates_in_category in templates_by_category %}
+        <optgroup label="{{ category }}">
           {% for t in templates_in_category %}
             <option value="{{ t.id }}">{{ t.name }}</option>
           {% endfor %}

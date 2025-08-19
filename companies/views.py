@@ -99,7 +99,7 @@ def choose_template(request, company_id):
     # GET: show form
     return render(request, 'companies/choose_template.html', {
         'company': company,
-        'templates_by_category': templates_by_category,  # ✅ now grouped
+        'templates_by_category': templates_by_category.items(),  # ✅ now grouped
         "templates": templates, 
         'directors': directors,
     })
