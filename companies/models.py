@@ -140,14 +140,22 @@ class ContactPerson(models.Model):
 # companies/models.py
 
 class DocumentTemplate(models.Model):
+    CATEGORY_CHOICES = [
+        ("resolutions", "Resolutions"),
+        ("letters", "Letters"),
+        ("forms", "Forms"),
+        ("misc", "Miscellaneous"),
+    ]
+
     name = models.CharField(max_length=255)
+    category = models.CharField(max_length=50, choices=CATEGORY_CHOICES, default="misc")
     github_url = models.URLField(default="https://example.com")
   # <-- we are using this now, not file_url
     per_director = models.BooleanField(default=False, help_text="Generate one document per director when checked")
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return self.name
+        return f"{self.get_category_display()} - {self.name}"
 
 
 class ComplianceInformation(models.Model):

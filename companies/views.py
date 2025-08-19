@@ -15,6 +15,7 @@ import io
 import zipfile
 from itertools import zip_longest
 from django.utils.text import slugify
+from collections import defaultdict
 
 
 
@@ -62,19 +63,25 @@ def add_director(request):
 
 # === New Function for Document Auto Generation ===
 
+from collections import defaultdict
+
 def choose_template(request, company_id):
     company = get_object_or_404(Company, pk=company_id)
-    templates = DocumentTemplate.objects.all().order_by('-created_at')
-
     directors = company.director_set.all()  # ✅ always matches the related directors
+
+    # ✅ Group templates by category
+    templates = DocumentTemplate.objects.all().order_by("category", "name")
+    templates_by_category = defaultdict(list)
+    for t in templates:
+        templates_by_category[t.get_category_display()].append(t)
 
     if request.method == 'POST':
         template_id = request.POST.get('template_id')
-        director_id = request.POST.get('director_id')  # ✅ NEW: capture director choice
+        director_id = request.POST.get('director_id')  # ✅ capture director choice
 
         template = get_object_or_404(DocumentTemplate, pk=template_id)
 
-        # ✅ NEW: Fetch selected directors (for preview/validation, not generation here)
+        # ✅ Fetch selected directors
         if director_id == "all":
             selected_directors = directors
         else:
@@ -85,16 +92,15 @@ def choose_template(request, company_id):
                 'generate_company_doc_with_director',
                 company_id=company.id,
                 template_id=int(template_id),
-                director_id=director_id or "all"  # ✅ NEW: pass "all" if no selection
+                director_id=director_id or "all"  # ✅ pass "all" if no selection
             )
 
     # GET: show form
     return render(request, 'companies/choose_template.html', {
         'company': company,
-        'templates': templates,
-        'directors': directors,  # ✅ NEW: pass directors to template
+        'templates_by_category': templates_by_category,  # ✅ now grouped
+        'directors': directors,
     })
-
 
 def generate_company_doc(request, company_id, template_id, director_id=None):
     company = get_object_or_404(Company, id=company_id)
