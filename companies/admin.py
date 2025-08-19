@@ -165,17 +165,17 @@ class CompanyResource(resources.ModelResource):
 
 @admin.register(DocumentTemplate)
 class DocumentTemplateAdmin(admin.ModelAdmin):
-    list_display = ('name', 'github_url', 'created_at', 'per_director')  # Show clickable URL
-    list_filter = ('per_director',)
+    list_display = ('name', 'category', 'github_url', 'created_at', 'per_director')  # Show clickable URL
+    list_filter = ('category', 'per_director',)
     search_fields = ('name',)
     ordering = ('-created_at',)
-    fields = ('name', 'github_url', 'per_director')
+    fields = ('name', 'category', 'github_url', 'per_director')
 
     def file_url_link(self, obj):
-        if obj.file_url:
-            return format_html('<a href="{}" target="_blank">View Template</a>', obj.file_url)
+        if obj.github_url:
+            return format_html('<a href="{}" target="_blank">View Template</a>', obj.github_url)
         return "-"
-    file_url_link.short_description = "File URL"
+    file_url_link.short_description = "Template Link"
 
 
 @admin.register(Company)
