@@ -3,6 +3,8 @@ import tempfile
 import requests
 import io
 import zipfile
+import mammoth
+from xhtml2pdf import pisa
 
 from datetime import date
 from django.conf import settings
@@ -45,12 +47,17 @@ def choose_template(request, company_id):
             selected_directors = directors.filter(pk=director_id)
 
         if template_id:
-            return redirect(
+            action = request.POST.get('action', 'generate')  # 👈 which button was clicked
+            url = reverse(
                 'generate_company_doc_with_director',
-                company_id=company.id,
-                template_id=int(template_id),
-                director_id=director_id or "all"  # ✅ pass "all" if no selection
+                kwargs={
+                    'company_id': company.id,
+                    'template_id': int(template_id),
+                    'director_id': director_id or "all"
+                }
             )
+            # 👇 carry the action across the redirect so we don't lose it
+            return redirect(f"{url}?action={action}")
 
     # GET: show form
     return render(request, 'companies/choose_template.html', {
@@ -85,6 +92,45 @@ def generate_company_doc(request, company_id, template_id, director_id=None):
         # helper for dates
         def safe_date(dt):
             return dt.strftime("%Y-%m-%d") if dt else ''
+        
+        def docx_bytes_to_pdf_bytes(docx_bytes: bytes) -> bytes:
+            # Save DOCX to a temp file for Mammoth
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".docx") as tmp_docx:
+                tmp_docx.write(docx_bytes)
+                tmp_docx_path = tmp_docx.name
+
+            try:
+                # DOCX -> HTML
+                with open(tmp_docx_path, "rb") as f:
+                    html = mammoth.convert_to_html(f).value
+
+                # Wrap minimal HTML/CSS so PDF looks decent
+                html_full = f"""
+                <html>
+                  <head>
+                    <meta charset="utf-8" />
+                    <style>
+                      body {{ font-family: DejaVu Sans, Arial, sans-serif; font-size: 12pt; }}
+                      table, th, td {{ border: 1px solid #555; border-collapse: collapse; }}
+                      th, td {{ padding: 6px; }}
+                      h1,h2,h3,h4,h5 {{ margin: 0.5em 0; }}
+                      .signature-line {{ display:inline-block; min-width:180px; border-bottom:1px solid #000; }}
+                    </style>
+                  </head>
+                  <body>{html}</body>
+                </html>
+                """
+
+                # HTML -> PDF
+                pdf_buffer = io.BytesIO()
+                pisa.CreatePDF(html_full, dest=pdf_buffer)
+                return pdf_buffer.getvalue()
+            finally:
+                try:
+                    os.remove(tmp_docx_path)
+                except Exception:
+                    pass
+
 
         # Base context used for single-doc generation and as part of per-director generation
         directors_qs = company.director_set.all()
@@ -125,8 +171,9 @@ def generate_company_doc(request, company_id, template_id, director_id=None):
             "director_rows": director_rows  # 👈 now includes line + name per cell
         }
         
-            # ✅ Detect user action (Download, Preview, or Email)
-        action = request.POST.get("action", "download")  # default = download
+        # ✅ Detect user action (Download, Preview, or Email) — coming from query string
+        action = request.GET.get("action", "generate")
+
 
         # === New: handle specific director selection ===
         if director_id and director_id != "all":
@@ -141,12 +188,40 @@ def generate_company_doc(request, company_id, template_id, director_id=None):
             doc = DocxTemplate(tmp_path)
             doc.render(ctx)
             filename = f"{slugify(company.company_name)}_{slugify(director.full_name)}_{doc_template.name}.docx"
-            response = HttpResponse(
-                content_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-            )
-            response['Content-Disposition'] = f'attachment; filename="{filename}"'
-            doc.save(response)
-            return response
+
+            if action == "preview":
+                # render DOCX to bytes
+                buf = io.BytesIO()
+                doc.save(buf)
+                pdf_bytes = docx_bytes_to_pdf_bytes(buf.getvalue())
+                resp = HttpResponse(pdf_bytes, content_type="application/pdf")
+                resp['Content-Disposition'] = f'inline; filename="{filename.replace(".docx", ".pdf")}"'
+                return resp
+
+            elif action == "email":
+                buf = io.BytesIO()
+                doc.save(buf)
+                pdf_bytes = docx_bytes_to_pdf_bytes(buf.getvalue())
+
+                email = EmailMessage(
+                    subject=f"Document from {company.company_name}",
+                    body="Dear Client,\n\nPlease find the attached document (PDF).\n\nBest regards,\nYour Company Secretary System",
+                    from_email="youremail@example.com",  # TODO: set this
+                    to=["client@example.com"],           # TODO: set recipient(s)
+                )
+                email.attach(filename.replace(".docx", ".pdf"), pdf_bytes, "application/pdf")
+                email.send()
+                return HttpResponse("✅ PDF document emailed successfully!")
+
+            else:
+                # default: download Word
+                response = HttpResponse(
+                    content_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                )
+                response['Content-Disposition'] = f'attachment; filename="{filename}"'
+                doc.save(response)
+                return response
+
 
         # ---- Per-director mode: create one file per director and return a ZIP ----
         if getattr(doc_template, "per_director", False):
@@ -216,63 +291,40 @@ def generate_company_doc(request, company_id, template_id, director_id=None):
         filename = f"{company.company_name or 'company'}_{doc_template.name}.docx"
 
         if action == "preview":
-            # ✅ Save as DOCX first
-            with tempfile.NamedTemporaryFile(delete=False, suffix=".docx") as tmp_docx:
-                doc.save(tmp_docx)
-                tmp_docx_path = tmp_docx.name
-
-            # ✅ Convert to PDF
-            tmp_pdf_path = tmp_docx_path.replace(".docx", ".pdf")
-            convert(tmp_docx_path, tmp_pdf_path)
-
-            # ✅ Return PDF inline
-            with open(tmp_pdf_path, "rb") as pdf_file:
-                response = HttpResponse(pdf_file.read(), content_type="application/pdf")
-                response['Content-Disposition'] = f'inline; filename="{filename.replace(".docx", ".pdf")}"'
-
-            # cleanup
-            os.remove(tmp_docx_path)
-            os.remove(tmp_pdf_path)
-
+            # DOCX -> PDF inline
+            buf = io.BytesIO()
+            doc.save(buf)
+            pdf_bytes = docx_bytes_to_pdf_bytes(buf.getvalue())
+            response = HttpResponse(pdf_bytes, content_type="application/pdf")
+            response['Content-Disposition'] = f'inline; filename="{filename.replace(".docx", ".pdf")}"'
             return response
 
         elif action == "email":
-            # ✅ Save as DOCX first
-            with tempfile.NamedTemporaryFile(delete=False, suffix=".docx") as tmp_docx:
-                doc.save(tmp_docx)
-                tmp_docx_path = tmp_docx.name
-
-            # ✅ Convert to PDF
-            tmp_pdf_path = tmp_docx_path.replace(".docx", ".pdf")
-            convert(tmp_docx_path, tmp_pdf_path)
-
-            # ✅ Read PDF and attach
-            with open(tmp_pdf_path, "rb") as pdf_file:
-                pdf_content = pdf_file.read()
+            # DOCX -> PDF email
+            buf = io.BytesIO()
+            doc.save(buf)
+            pdf_bytes = docx_bytes_to_pdf_bytes(buf.getvalue())
 
             email = EmailMessage(
                 subject=f"Document from {company.company_name}",
-                body="Dear Client,\n\nPlease find the attached document.\n\nBest regards,\nYour Company Secretary System",
-                from_email="youremail@example.com",   # change to your email
-                to=["client@example.com"],            # change to client email
+                body="Dear Client,\n\nPlease find the attached document (PDF).\n\nBest regards,\nYour Company Secretary System",
+                from_email="youremail@example.com",  # TODO: set this
+                to=["client@example.com"],           # TODO: set recipient(s)
             )
-            email.attach(filename.replace(".docx", ".pdf"), pdf_content, "application/pdf")
+            email.attach(filename.replace(".docx", ".pdf"), pdf_bytes, "application/pdf")
             email.send()
-
-            # cleanup
-            os.remove(tmp_docx_path)
-            os.remove(tmp_pdf_path)
 
             return HttpResponse("✅ PDF document emailed successfully!")
 
         else:
-            # ✅ Default = download
+            # Default = download Word
             response = HttpResponse(
                 content_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
             )
             response['Content-Disposition'] = f'attachment; filename="{filename}"'
             doc.save(response)
             return response
+
 
 
     finally:
