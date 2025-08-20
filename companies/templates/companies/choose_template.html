@@ -21,7 +21,7 @@
     </select>
     <br><br>
 
-    <!-- Select Director (new section) -->
+    <!-- Select Director -->
     <label for="director_id">Choose director:</label>
     <select name="director_id" id="director_id">
       <option value="all">All Directors</option>
@@ -31,7 +31,10 @@
     </select>
     <br><br>
 
-    <button type="submit">Generate</button>
+    <!-- Action Buttons -->
+    <button type="submit" name="action" value="generate">Generate</button>
+    <button type="submit" name="action" value="preview">Preview</button>
+    <button type="submit" name="action" value="email">Email to Client</button>
   </form>
 {% else %}
   <p>No templates found. Go to Admin → Document Templates to upload .docx templates.</p>
