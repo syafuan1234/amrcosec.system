@@ -31,10 +31,17 @@
     </select>
     <br><br>
 
-    <!-- Action Buttons -->
-    <button type="submit" name="action" value="generate">Generate</button>
-    <button type="submit" name="action" value="preview">Preview</button>
-    <button type="submit" name="action" value="email">Email to Client</button>
+    <!-- Action Buttons with notes -->
+    <button type="submit" name="action" value="generate">Generate (Word)</button>
+    <small style="margin-left: 8px; color: gray;">⬇️ Downloads as .docx</small>
+    <br><br>
+
+    <button type="submit" name="action" value="preview">Preview (PDF)</button>
+    <small style="margin-left: 8px; color: gray;">👀 Opens inline as .pdf</small>
+    <br><br>
+
+    <button type="submit" name="action" value="email">Email to Client (PDF)</button>
+    <small style="margin-left: 8px; color: gray;">📧 Sends as .pdf attachment</small>
   </form>
 {% else %}
   <p>No templates found. Go to Admin → Document Templates to upload .docx templates.</p>
