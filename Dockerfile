@@ -29,8 +29,10 @@ COPY . /app
 
 RUN chmod +x /app/render_start.sh
 
-ENV DJANGO_SETTINGS_MODULE=${DJANGO_SETTINGS_MODULE:-config.settings}
+# Set the correct Django settings module
+ENV DJANGO_SETTINGS_MODULE=${DJANGO_SETTINGS_MODULE:-secretary.settings}
 
 HEALTHCHECK --interval=30s --timeout=5s --retries=5 CMD curl -fsS http://localhost:${PORT}/ || exit 1
 
 CMD ["/app/render_start.sh"]
+
