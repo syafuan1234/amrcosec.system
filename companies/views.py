@@ -19,6 +19,7 @@ from django.utils.text import slugify
 from collections import defaultdict
 from django.core.mail import EmailMessage
 from docx2pdf import convert   # ✅ add at the top with your imports
+from .utils.word_to_pdf import convert_docx_to_pdf
 
 
 # === New Function for Document Auto Generation ===
@@ -324,14 +325,49 @@ def generate_company_doc(request, company_id, template_id, director_id=None):
             response['Content-Disposition'] = f'attachment; filename="{filename}"'
             doc.save(response)
             return response
+        
+    finally:
+            try:
+                os.remove(tmp_path)
+            except Exception:
+                pass
 
+def download_pdf(request, company_id, template_id):
+    """
+    Generate a Word doc from a template, then convert it to PDF and return as download.
+    """
+    company = get_object_or_404(Company, id=company_id)
+    doc_template = get_object_or_404(DocumentTemplate, id=template_id)
 
+    # download template file
+    r = requests.get(doc_template.github_url)
+    if r.status_code != 200:
+        return HttpResponse("Error downloading template", status=500)
+
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".docx") as tmp:
+        tmp.write(r.content)
+        tmp_path = tmp.name
+
+    try:
+        # render template
+        doc = DocxTemplate(tmp_path)
+        context = {"company_name": company.company_name}
+        doc.render(context)
+
+        # save to buffer
+        buf = io.BytesIO()
+        doc.save(buf)
+        buf.seek(0)
+
+        # convert DOCX → PDF (using your utils function)
+        pdf_bytes = convert_docx_to_pdf(buf.getvalue())
+
+        response = HttpResponse(pdf_bytes, content_type="application/pdf")
+        response['Content-Disposition'] = f'attachment; filename="{company.company_name}_document.pdf"'
+        return response
 
     finally:
-        # cleanup temp file
-        try:
-            os.remove(tmp_path)
-        except Exception:
-            pass
+        os.remove(tmp_path)
+
 
 

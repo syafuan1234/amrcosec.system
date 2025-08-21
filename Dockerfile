@@ -34,5 +34,8 @@ ENV DJANGO_SETTINGS_MODULE=${DJANGO_SETTINGS_MODULE:-secretary.settings}
 
 HEALTHCHECK --interval=30s --timeout=5s --retries=5 CMD curl -fsS http://localhost:${PORT}/ || exit 1
 
+# Install LibreOffice for DOCX -> PDF conversion
+RUN apt-get update && apt-get install -y libreoffice && apt-get clean
+
 CMD ["/app/render_start.sh"]
 
