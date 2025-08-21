@@ -7,7 +7,7 @@ python manage.py migrate --noinput
 echo "Collecting static files…"
 python manage.py collectstatic --noinput
 
-APP_MODULE=${APP_MODULE:-config.wsgi:application}
+APP_MODULE=${APP_MODULE:-secretary.wsgi:application}
 
 echo "Starting Gunicorn…"
 exec gunicorn "$APP_MODULE" \
