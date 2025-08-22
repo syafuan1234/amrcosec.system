@@ -29,8 +29,16 @@ def choose_email_template(request, company_id, template_id):
     templates = EmailTemplate.objects.all()
 
     # Collect recipient emails
-    director_emails = list(company.director_set.exclude(email="").values_list("email", flat=True))
-    contact_person_emails = list(company.contactperson_set.exclude(email="").values_list("email", flat=True))
+    director_emails = list(
+        company.director_set.exclude(email="").values_list("email", flat=True)
+    )
+
+    # Handle one-to-one ContactPerson safely
+    contact_person_emails = []
+    if hasattr(company, "contactperson") and company.contactperson.email:
+        contact_person_emails.append(company.contactperson.email)
+
+    # Merge directors + contact person, remove duplicates
     recipients = ", ".join(set(director_emails + contact_person_emails))
 
     if request.method == "POST":
