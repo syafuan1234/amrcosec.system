@@ -3,6 +3,7 @@ import tempfile
 import requests
 import io
 import zipfile
+import subprocess
 
 from datetime import date
 from django.conf import settings
@@ -19,7 +20,28 @@ from django.core.mail import EmailMessage
 from .utils.word_to_pdf import convert_docx_to_pdf
 
 
+def download_pdf(docx_path, filename="document.pdf"):
+    """
+    Convert a DOCX file to PDF using LibreOffice and return as HTTP response.
+    """
+    # Create a temporary directory for conversion
+    with tempfile.TemporaryDirectory() as tmpdirname:
+        pdf_path = os.path.join(tmpdirname, "output.pdf")
 
+        # Run LibreOffice in headless mode
+        subprocess.run([
+            "libreoffice", "--headless", "--convert-to", "pdf",
+            "--outdir", tmpdirname, docx_path
+        ], check=True)
+
+        # Read the generated PDF
+        with open(pdf_path, "rb") as f:
+            pdf_data = f.read()
+
+    # Send as downloadable response
+    response = HttpResponse(pdf_data, content_type="application/pdf")
+    response["Content-Disposition"] = f'inline; filename="{filename}"'
+    return response
 # === New Function for Document Auto Generation ===
 
 def choose_template(request, company_id):
@@ -211,27 +233,23 @@ def generate_company_doc(request, company_id, template_id, director_id=None):
 
         # Handle action: preview, email, or download Word
         if action == "preview":
-            buf = io.BytesIO()
-            doc.save(buf)
-            buf.seek(0)
-            pdf_bytes = convert_docx_to_pdf(buf.getvalue())
-            return HttpResponse(pdf_bytes, content_type="application/pdf")
+            return download_pdf(output_path, f"{company.company_name}.pdf")
+
 
         elif action == "email":
-            buf = io.BytesIO()
-            doc.save(buf)
-            buf.seek(0)
-            pdf_bytes = convert_docx_to_pdf(buf.getvalue())
+            pdf_response = download_pdf(output_path, f"{company.company_name}.pdf")
+            pdf_content = pdf_response.content  # get PDF bytes from response
 
             email = EmailMessage(
-                subject=f"{company.company_name} – {doc_template.name}",
-                body="Attached is your generated document.",
-                from_email="noreply@example.com",  # change to your sender
-                to=["recipient@example.com"],      # replace with actual recipient(s)
+                subject=f"Document for {company.company_name}",
+                body="Dear Client,\n\nPlease find attached the requested document.\n\nBest regards,\nYour Company",
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                to=["client@example.com"],  # TODO: replace with actual client email(s)
             )
-            email.attach(f"{filename}.pdf", pdf_bytes, "application/pdf")
+            email.attach(f"{company.company_name}.pdf", pdf_content, "application/pdf")
             email.send()
-            return HttpResponse("Email sent successfully!")
+            messages.success(request, "Email sent successfully.")
+            return redirect("admin:companies_company_changelist")
 
         else:
             # Default: download Word
