@@ -13,35 +13,33 @@ from django.urls import reverse
 from .forms import DirectorForm
 from .models import Company, DocumentTemplate, Director  # ✅ Needed for document generation
 from docxtpl import DocxTemplate  # ✅ New import for document auto generator
-from itertools import zip_longest
 from django.utils.text import slugify
 from collections import defaultdict
 from django.core.mail import EmailMessage
 from .utils.word_to_pdf import convert_docx_to_pdf
+from django.contrib import messages
+
 
 
 def download_pdf(docx_path, filename="document.pdf"):
-    """
-    Convert a DOCX file to PDF using LibreOffice and return as HTTP response.
-    """
-    # Create a temporary directory for conversion
-    with tempfile.TemporaryDirectory() as tmpdirname:
-        pdf_path = os.path.join(tmpdirname, "output.pdf")
+    try:
+        with tempfile.TemporaryDirectory() as tmpdirname:
+            pdf_path = os.path.join(tmpdirname, "output.pdf")
 
-        # Run LibreOffice in headless mode
-        subprocess.run([
-            "libreoffice", "--headless", "--convert-to", "pdf",
-            "--outdir", tmpdirname, docx_path
-        ], check=True)
+            subprocess.run([
+                "libreoffice", "--headless", "--convert-to", "pdf",
+                "--outdir", tmpdirname, docx_path
+            ], check=True)
 
-        # Read the generated PDF
-        with open(pdf_path, "rb") as f:
-            pdf_data = f.read()
+            with open(pdf_path, "rb") as f:
+                pdf_data = f.read()
 
-    # Send as downloadable response
-    response = HttpResponse(pdf_data, content_type="application/pdf")
-    response["Content-Disposition"] = f'inline; filename="{filename}"'
-    return response
+        response = HttpResponse(pdf_data, content_type="application/pdf")
+        response["Content-Disposition"] = f'inline; filename="{filename}"'
+        return response
+    except subprocess.CalledProcessError as e:
+        return HttpResponse(f"PDF conversion failed: {e}", status=500)
+
 # === New Function for Document Auto Generation ===
 
 def choose_template(request, company_id):
@@ -231,18 +229,25 @@ def generate_company_doc(request, company_id, template_id, director_id=None):
 
         filename = f"{company.company_name or 'company'}_{doc_template.name}"
 
+        os.makedirs(settings.MEDIA_ROOT, exist_ok=True)
+
         # Save generated DOCX file first
-        output_path = os.path.join(settings.MEDIA_ROOT, f"{company.company_name}.docx")
+        safe_company = slugify(company.company_name) or "company"
+        output_path = os.path.join(settings.MEDIA_ROOT, f"{safe_company}_{int(date.today().strftime('%Y%m%d'))}.docx")
         doc.save(output_path)
 
         # Handle action: preview, email, or download Word
         if action == "preview":
-            return download_pdf(output_path, f"{company.company_name}.pdf")
+            response = download_pdf(output_path, f"{safe_company}.pdf")
+            os.remove(output_path)  # ✅ delete docx after use
+            return response
 
 
         elif action == "email":
-            pdf_response = download_pdf(output_path, f"{company.company_name}.pdf")
-            pdf_content = pdf_response.content  # get PDF bytes from response
+            pdf_response = download_pdf(output_path, f"{safe_company}.pdf")
+            pdf_content = pdf_response.content
+            os.remove(output_path)  # ✅ cleanup
+
 
             email = EmailMessage(
                 subject=f"Document for {company.company_name}",
