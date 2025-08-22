@@ -21,7 +21,6 @@ from django.core.mail import EmailMessage
 from docx2pdf import convert   # ✅ add at the top with your imports
 from .utils.word_to_pdf import convert_docx_to_pdf
 
-
 # === New Function for Document Auto Generation ===
 
 def choose_template(request, company_id):
