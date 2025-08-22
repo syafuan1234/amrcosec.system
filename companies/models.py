@@ -157,6 +157,14 @@ class DocumentTemplate(models.Model):
     def __str__(self):
         return f"{self.get_category_display()} - {self.name}"
 
+class EmailTemplate(models.Model):
+    name = models.CharField(max_length=100, unique=True)  # e.g. "Annual Return Reminder"
+    subject = models.CharField(max_length=255)
+    body = models.TextField()  # use {{ placeholders }} if needed (like {{ company_name }})
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.name
 
 class ComplianceInformation(models.Model):
     company = models.OneToOneField('Company', on_delete=models.CASCADE, related_name='compliance_info')

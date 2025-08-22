@@ -1,0 +1,41 @@
+<h2>Send Email for {{ company.company_name }}</h2>
+
+<form method="post">
+    {% csrf_token %}
+
+    <label for="template">Choose Template:</label>
+    <select id="template" onchange="fillTemplate()" name="template">
+        <option value="">-- Select --</option>
+        {% for t in email_templates %}
+        <option value="{{ t.id }}"
+                data-subject="{{ t.subject }}"
+                data-body="{{ t.body|escapejs }}">
+            {{ t.name }}
+        </option>
+        {% endfor %}
+    </select>
+
+    <br><br>
+
+    <label>Recipient Email:</label>
+    <input type="email" name="recipient" value="{{ company.email }}" required><br><br>
+
+    <label>Subject:</label>
+    <input type="text" name="subject" id="subject" required><br><br>
+
+    <label>Body:</label><br>
+    <textarea name="body" id="body" rows="8" cols="50"></textarea><br><br>
+
+    <button type="submit">Send Email</button>
+</form>
+
+<script>
+function fillTemplate() {
+    const select = document.getElementById("template");
+    const subject = select.options[select.selectedIndex].dataset.subject;
+    const body = select.options[select.selectedIndex].dataset.body;
+
+    if (subject) document.getElementById("subject").value = subject;
+    if (body) document.getElementById("body").value = body;
+}
+</script>

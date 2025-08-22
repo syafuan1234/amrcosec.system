@@ -7,9 +7,7 @@ from django.forms.models import BaseInlineFormSet
 from import_export.widgets import ForeignKeyWidget
 from django.utils.html import format_html
 from django.urls import reverse
-from .models import DocumentTemplate
-
-
+from .models import DocumentTemplate, EmailTemplate
 
 
 # --- INLINE ADMIN CONFIGS ---
@@ -162,6 +160,13 @@ class CompanyResource(resources.ModelResource):
         
 
 # --- MAIN ADMIN REGISTRATION ---
+
+@admin.register(EmailTemplate)
+class EmailTemplateAdmin(admin.ModelAdmin):
+    list_display = ("name", "subject", "created_at")
+    search_fields = ("name", "subject", "body")
+    ordering = ("-created_at",)
+
 
 @admin.register(DocumentTemplate)
 class DocumentTemplateAdmin(admin.ModelAdmin):
