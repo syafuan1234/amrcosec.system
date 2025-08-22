@@ -20,35 +20,6 @@ from .utils.word_to_pdf import convert_docx_to_pdf
 from django.contrib import messages
 
 
-def download_pdf(docx_bytes):
-    with tempfile.TemporaryDirectory() as tmpdir:
-        input_path = os.path.join(tmpdir, "input.docx")
-        output_path = os.path.join(tmpdir, "output.pdf")
-
-        with open(input_path, "wb") as f:
-            f.write(docx_bytes)
-
-        try:
-            result = subprocess.run(
-                [
-                    "libreoffice", "--headless", "--convert-to", "pdf",
-                    "--outdir", tmpdir, input_path
-                ],
-                check=True, capture_output=True, text=True
-            )
-            print("LibreOffice stdout:", result.stdout)
-            print("LibreOffice stderr:", result.stderr)
-        except subprocess.CalledProcessError as e:
-            print("LibreOffice failed:", e.stderr)
-            raise
-
-        if not os.path.exists(output_path):
-            raise FileNotFoundError(f"LibreOffice did not produce output: {output_path}")
-
-        with open(output_path, "rb") as f:
-            return f.read()
-
-
 # === New Function for Document Auto Generation ===
 
 def choose_template(request, company_id):
@@ -247,27 +218,36 @@ def generate_company_doc(request, company_id, template_id, director_id=None):
 
         # Handle action: preview, email, or download Word
         if action == "preview":
-            response = download_pdf(output_path, f"{safe_company}.pdf")
-            os.remove(output_path)  # ✅ delete docx after use
-            return response
+            buf = io.BytesIO()
+            doc.save(buf)
+            buf.seek(0)
+            pdf_bytes = convert_docx_to_pdf_bytes(buf.getvalue())  # ✅ use helper
+            return HttpResponse(pdf_bytes, content_type="application/pdf")
 
 
         elif action == "email":
-            pdf_response = download_pdf(output_path, f"{safe_company}.pdf")
-            pdf_content = pdf_response.content
-            os.remove(output_path)  # ✅ cleanup
+            # Read the generated DOCX back into memory
+            with open(output_path, "rb") as f:
+                docx_bytes = f.read()
 
+            # Convert to PDF
+            pdf_bytes = convert_docx_to_pdf_bytes(docx_bytes)
 
+            # Clean up the temporary DOCX
+            os.remove(output_path)
+
+            # Send email with PDF attached
             email = EmailMessage(
                 subject=f"Document for {company.company_name}",
                 body="Dear Client,\n\nPlease find attached the requested document.\n\nBest regards,\nYour Company",
                 from_email=settings.DEFAULT_FROM_EMAIL,
                 to=["client@example.com"],  # TODO: replace with actual client email(s)
             )
-            email.attach(f"{company.company_name}.pdf", pdf_content, "application/pdf")
+            email.attach(f"{company.company_name}.pdf", pdf_bytes, "application/pdf")
             email.send()
             messages.success(request, "Email sent successfully.")
             return redirect("admin:companies_company_changelist")
+
 
         else:
             # Default: download Word
@@ -284,3 +264,27 @@ def generate_company_doc(request, company_id, template_id, director_id=None):
             os.remove(tmp_path)
         except Exception:
             pass
+
+
+def convert_docx_to_pdf_bytes(docx_bytes):
+    """Convert DOCX bytes into PDF bytes using LibreOffice."""
+    with tempfile.TemporaryDirectory() as tmpdirname:
+        input_path = os.path.join(tmpdirname, "input.docx")
+        output_dir = tmpdirname
+        output_path = os.path.join(output_dir, "input.pdf")
+
+        # Write DOCX to temp file
+        with open(input_path, "wb") as f:
+            f.write(docx_bytes)
+
+        # Run LibreOffice headless conversion
+        subprocess.run(
+            ["libreoffice", "--headless", "--convert-to", "pdf", "--outdir", output_dir, input_path],
+            check=True,
+        )
+
+        # Read back PDF as bytes
+        with open(output_path, "rb") as f:
+            pdf_bytes = f.read()
+
+    return pdf_bytes
