@@ -7,6 +7,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     LANG=en_US.UTF-8 \
     LC_ALL=en_US.UTF-8
 
+# Install system dependencies including LibreOffice + fonts
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     libpq-dev \
@@ -16,6 +17,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     fonts-liberation \
     fonts-noto \
     locales \
+    curl \
     && sed -i '/en_US.UTF-8/s/^# //g' /etc/locale.gen \
     && locale-gen \
     && rm -rf /var/lib/apt/lists/*
@@ -29,13 +31,10 @@ COPY . /app
 
 RUN chmod +x /app/render_start.sh
 
-# Set the correct Django settings module
+# Set Django settings module
 ENV DJANGO_SETTINGS_MODULE=${DJANGO_SETTINGS_MODULE:-secretary.settings}
 
+# Healthcheck (ensure web app is alive)
 HEALTHCHECK --interval=30s --timeout=5s --retries=5 CMD curl -fsS http://localhost:${PORT}/ || exit 1
 
-# Install LibreOffice for DOCX -> PDF conversion
-RUN apt-get update && apt-get install -y libreoffice && apt-get clean
-
 CMD ["/app/render_start.sh"]
-

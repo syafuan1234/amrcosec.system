@@ -20,25 +20,34 @@ from .utils.word_to_pdf import convert_docx_to_pdf
 from django.contrib import messages
 
 
+def download_pdf(docx_bytes):
+    with tempfile.TemporaryDirectory() as tmpdir:
+        input_path = os.path.join(tmpdir, "input.docx")
+        output_path = os.path.join(tmpdir, "output.pdf")
 
-def download_pdf(docx_path, filename="document.pdf"):
-    try:
-        with tempfile.TemporaryDirectory() as tmpdirname:
-            pdf_path = os.path.join(tmpdirname, "output.pdf")
+        with open(input_path, "wb") as f:
+            f.write(docx_bytes)
 
-            subprocess.run([
-                "libreoffice", "--headless", "--convert-to", "pdf",
-                "--outdir", tmpdirname, docx_path
-            ], check=True)
+        try:
+            result = subprocess.run(
+                [
+                    "libreoffice", "--headless", "--convert-to", "pdf",
+                    "--outdir", tmpdir, input_path
+                ],
+                check=True, capture_output=True, text=True
+            )
+            print("LibreOffice stdout:", result.stdout)
+            print("LibreOffice stderr:", result.stderr)
+        except subprocess.CalledProcessError as e:
+            print("LibreOffice failed:", e.stderr)
+            raise
 
-            with open(pdf_path, "rb") as f:
-                pdf_data = f.read()
+        if not os.path.exists(output_path):
+            raise FileNotFoundError(f"LibreOffice did not produce output: {output_path}")
 
-        response = HttpResponse(pdf_data, content_type="application/pdf")
-        response["Content-Disposition"] = f'inline; filename="{filename}"'
-        return response
-    except subprocess.CalledProcessError as e:
-        return HttpResponse(f"PDF conversion failed: {e}", status=500)
+        with open(output_path, "rb") as f:
+            return f.read()
+
 
 # === New Function for Document Auto Generation ===
 
