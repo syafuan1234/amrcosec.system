@@ -23,15 +23,14 @@ from docx import Document
 # === New Function for Document Auto Generation ===
 
 # companies/views.py
-def choose_email_template(request, company_id):
+def choose_email_template(request, company_id, template_id):
     company = get_object_or_404(Company, id=company_id)
+    doc_template = get_object_or_404(DocumentTemplate, id=template_id)
     templates = EmailTemplate.objects.all()
 
     # Collect recipient emails
     director_emails = list(company.director_set.exclude(email="").values_list("email", flat=True))
     contact_person_emails = list(company.contactperson_set.exclude(email="").values_list("email", flat=True))
-
-    # Combine unique emails into one string
     recipients = ", ".join(set(director_emails + contact_person_emails))
 
     if request.method == "POST":
@@ -39,27 +38,54 @@ def choose_email_template(request, company_id):
         subject = request.POST.get("subject")
         body = request.POST.get("body")
 
-        # Generate PDF as before
-        pdf_file = generate_pdf(company)
+        # --- Generate DOCX (same as in generate_company_doc) ---
+        r = requests.get(doc_template.github_url)
+        if r.status_code != 200:
+            messages.error(request, "Failed to fetch document template.")
+            return redirect("choose_template", company_id=company.id)
 
-        email = EmailMessage(
-            subject=subject,
-            body=body,
-            from_email=settings.DEFAULT_FROM_EMAIL,
-            to=[r.strip() for r in recipient.split(",") if r.strip()],
-        )
-        email.attach(f"{company.company_name}_document.pdf", pdf_file.getvalue(), "application/pdf")
-        email.send()
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".docx") as tmp:
+            tmp.write(r.content)
+            tmp_path = tmp.name
 
-        messages.success(request, "Email sent successfully!")
-        return redirect("admin:companies_company_changelist")
+        try:
+            doc = DocxTemplate(tmp_path)
+
+            # Basic context (you can expand if needed)
+            context = {
+                "company_name": company.company_name or '',
+                "ssm_number": company.ssm_number or '',
+                "generated_date": date.today().strftime("%d %B %Y"),
+            }
+            doc.render(context)
+
+            buf = io.BytesIO()
+            doc.save(buf)
+            buf.seek(0)
+
+            pdf_bytes = convert_docx_to_pdf_bytes(buf.getvalue())
+
+            # --- Send email ---
+            email = EmailMessage(
+                subject=subject,
+                body=body,
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                to=[r.strip() for r in recipient.split(",") if r.strip()],
+            )
+            email.attach(f"{company.company_name}_document.pdf", pdf_bytes, "application/pdf")
+            email.send()
+
+            messages.success(request, "✅ Email sent successfully!")
+            return redirect("admin:companies_company_changelist")
+
+        finally:
+            os.remove(tmp_path)
 
     return render(request, "companies/choose_email_template.html", {
         "company": company,
         "email_templates": templates,
-        "recipients": recipients,  # 👈 pass to template
+        "recipients": recipients,
     })
-
 
 
 def choose_template(request, company_id):
