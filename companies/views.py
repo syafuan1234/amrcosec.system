@@ -284,6 +284,13 @@ def generate_company_doc(request, company_id, template_id, director_id=None):
 
 
         elif action == "email":
+            # Instead of sending directly, redirect to choose_email_template page
+            return redirect(
+                "choose_email_template",
+                company_id=company.id,
+                template_id=doc_template.id,
+            )
+
             # Read the generated DOCX back into memory
             with open(output_path, "rb") as f:
                 docx_bytes = f.read()
