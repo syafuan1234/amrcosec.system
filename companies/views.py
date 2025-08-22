@@ -231,6 +231,10 @@ def generate_company_doc(request, company_id, template_id, director_id=None):
 
         filename = f"{company.company_name or 'company'}_{doc_template.name}"
 
+        # Save generated DOCX file first
+        output_path = os.path.join(settings.MEDIA_ROOT, f"{company.company_name}.docx")
+        doc.save(output_path)
+
         # Handle action: preview, email, or download Word
         if action == "preview":
             return download_pdf(output_path, f"{company.company_name}.pdf")
