@@ -17,8 +17,11 @@
 
     <br><br>
 
-    <label>Recipient Email:</label>
-    <input type="email" name="recipient" value="{{ company.email }}" required><br><br>
+
+    <label>Recipient Email(s):</label><br>
+    <input type="text" name="recipient" value="{{ recipients }}" style="width:400px;" required><br><br>
+    <small>You can edit or remove emails before sending. Separate multiple emails with commas.</small>
+
 
     <label>Subject:</label>
     <input type="text" name="subject" id="subject" required><br><br>

@@ -23,61 +23,43 @@ from docx import Document
 # === New Function for Document Auto Generation ===
 
 # companies/views.py
-def choose_email_template(request, company_id, template_id, director_id="all"):
-    company = get_object_or_404(Company, pk=company_id)
+def choose_email_template(request, company_id):
+    company = get_object_or_404(Company, id=company_id)
     templates = EmailTemplate.objects.all()
-    doc_template = get_object_or_404(DocumentTemplate, pk=template_id)
+
+    # Collect recipient emails
+    director_emails = list(company.director_set.exclude(email="").values_list("email", flat=True))
+    contact_person_emails = list(company.contactperson_set.exclude(email="").values_list("email", flat=True))
+
+    # Combine unique emails into one string
+    recipients = ", ".join(set(director_emails + contact_person_emails))
 
     if request.method == "POST":
-        selected_template_id = request.POST.get("template")
+        recipient = request.POST.get("recipient")
         subject = request.POST.get("subject")
         body = request.POST.get("body")
 
-        if not subject or not body:
-            messages.error(request, "Subject and body cannot be empty.")
-        else:
-            # --- 1. Fetch DOCX from GitHub ---
-            import requests
-            response = requests.get(doc_template.github_url)
-            if response.status_code != 200:
-                messages.error(request, "Failed to fetch document template.")
-                return redirect("choose_template", company_id=company.id)
+        # Generate PDF as before
+        pdf_file = generate_pdf(company)
 
-            # Save DOCX temporarily
-            tmp_docx = tempfile.NamedTemporaryFile(delete=False, suffix=".docx")
-            tmp_docx.write(response.content)
-            tmp_docx.close()
+        email = EmailMessage(
+            subject=subject,
+            body=body,
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            to=[r.strip() for r in recipient.split(",") if r.strip()],
+        )
+        email.attach(f"{company.company_name}_document.pdf", pdf_file.getvalue(), "application/pdf")
+        email.send()
 
-            # Convert DOCX → PDF (simple way using python-docx + reportlab)
-            from reportlab.pdfgen import canvas
-            from reportlab.lib.pagesizes import A4
-
-            pdf_path = tempfile.NamedTemporaryFile(delete=False, suffix=".pdf").name
-            c = canvas.Canvas(pdf_path, pagesize=A4)
-            c.drawString(100, 800, f"Generated for {company.company_name}")
-            c.save()
-
-            # --- 2. Send email with PDF attachment ---
-            to_email = company.contactperson.email if hasattr(company, "contactperson") else None
-            if to_email:
-                email = EmailMessage(subject, body, to=[to_email])
-                email.attach_file(pdf_path)  # attach PDF
-                email.send()
-
-                messages.success(request, f"✅ Email with PDF sent to {to_email}")
-            else:
-                messages.error(request, "No contact email found.")
-
-            # cleanup temp files
-            os.unlink(tmp_docx.name)
-            os.unlink(pdf_path)
-
-            return redirect("choose_template", company_id=company.id)
+        messages.success(request, "Email sent successfully!")
+        return redirect("admin:companies_company_changelist")
 
     return render(request, "companies/choose_email_template.html", {
         "company": company,
-        "templates": templates,
+        "email_templates": templates,
+        "recipients": recipients,  # 👈 pass to template
     })
+
 
 
 def choose_template(request, company_id):
