@@ -29,18 +29,16 @@ def choose_email_template(request, company_id, template_id):
     doc_template = get_object_or_404(DocumentTemplate, id=template_id)
     templates = EmailTemplate.objects.all()
 
-    # Collect recipient emails
     director_emails = list(
-        company.director_set.exclude(email="").values_list("email", flat=True)
+    company.director_set.exclude(email="").values_list("email", flat=True)
     )
 
-    # Handle one-to-one ContactPerson safely
-    contact_person_emails = []
-    if hasattr(company, "contactperson") and company.contactperson.email:
-        contact_person_emails.append(company.contactperson.email)
+    contact_person_emails = list(
+    company.contactperson_set.exclude(email="").values_list("email", flat=True)
+    )
 
-    # Merge directors + contact person, remove duplicates
-    recipients = ", ".join(set(director_emails + contact_person_emails))
+    recipients = ", ".join(set(director_emails + list(contact_person_emails)))
+
 
     if request.method == "POST":
         recipient = request.POST.get("recipient")
@@ -295,8 +293,11 @@ def generate_company_doc(request, company_id, template_id, director_id=None):
         if action == "preview":
             ctx = build_context(company)
             # Use the same .docx template path you already use
-            docx_bytes = render_docx_bytes(doc_template.local_path, ctx)  # replace with correct path attr
-            pdf_bytes = convert_docx_to_pdf(docx_bytes)
+            buf = io.BytesIO()
+            doc.save(buf)
+            docx_bytes = buf.getvalue()
+
+            pdf_bytes = convert_docx_to_pdf_bytes(docx_bytes)
             return HttpResponse(pdf_bytes, content_type="application/pdf")
 
 
@@ -307,28 +308,6 @@ def generate_company_doc(request, company_id, template_id, director_id=None):
                 company_id=company.id,
                 template_id=doc_template.id,
             )
-
-            # Read the generated DOCX back into memory
-            with open(output_path, "rb") as f:
-                docx_bytes = f.read()
-
-            # Convert to PDF
-            pdf_bytes = convert_docx_to_pdf_bytes(docx_bytes)
-
-            # Clean up the temporary DOCX
-            os.remove(output_path)
-
-            # Send email with PDF attached
-            email = EmailMessage(
-                subject=f"Document for {company.company_name}",
-                body="Dear Client,\n\nPlease find attached the requested document.\n\nBest regards,\nYour Company",
-                from_email=settings.DEFAULT_FROM_EMAIL,
-                to=["client@example.com"],  # TODO: replace with actual client email(s)
-            )
-            email.attach(f"{company.company_name}.pdf", pdf_bytes, "application/pdf")
-            email.send()
-            messages.success(request, "Email sent successfully.")
-            return redirect("admin:companies_company_changelist")
 
 
         else:
