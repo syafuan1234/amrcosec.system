@@ -25,12 +25,13 @@ if not SECRET_KEY:
 
 DEBUG = os.getenv("DJANGO_DEBUG", "False").lower() == "true"
 
-# Allowed hosts (comma-separated). Example: 127.0.0.1,localhost,amrcosec-system-docker.onrender.com
+# --- Allowed hosts (hard fallback + env support) ---
 _allowed = os.getenv("DJANGO_ALLOWED_HOSTS", "")
 if _allowed:
     ALLOWED_HOSTS = [h.strip() for h in _allowed.split(",") if h.strip()]
 else:
-    ALLOWED_HOSTS = ["127.0.0.1", "localhost", "amrcosec-system-docker.onrender.com"]
+    # fallback that works on Render + local
+    ALLOWED_HOSTS = ["amrcosec-system-docker.onrender.com", "127.0.0.1", "localhost"]
 
 
 # --- Apps ---
@@ -131,10 +132,11 @@ SECURE_HSTS_INCLUDE_SUBDOMAINS = True
 SECURE_HSTS_PRELOAD = True
 SECURE_CONTENT_TYPE_NOSNIFF = True
 X_FRAME_OPTIONS = "DENY"
+
+# Behind Render’s proxy: trust X-Forwarded-Proto so HTTPS is recognized
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
-
-# --- CSRF trusted origins ---
+# --- CSRF trusted origins (must include scheme and be https) ---
 _csrf = os.getenv("CSRF_TRUSTED_ORIGINS", "")
 CSRF_TRUSTED_ORIGINS = [o.strip() for o in _csrf.split(",") if o.strip()]
 if not CSRF_TRUSTED_ORIGINS:
