@@ -27,7 +27,11 @@ DEBUG = os.getenv("DJANGO_DEBUG", "False").lower() == "true"
 
 # Allowed hosts (comma-separated). Example: 127.0.0.1,localhost,amrcosec-system-docker.onrender.com
 _allowed = os.getenv("DJANGO_ALLOWED_HOSTS", "")
-ALLOWED_HOSTS = [h.strip() for h in _allowed.split(",") if h.strip()] if _allowed else (["*"] if DEBUG else [])
+if _allowed:
+    ALLOWED_HOSTS = [h.strip() for h in _allowed.split(",") if h.strip()]
+else:
+    ALLOWED_HOSTS = ["127.0.0.1", "localhost", "amrcosec-system-docker.onrender.com"]
+
 
 # --- Apps ---
 INSTALLED_APPS = [
