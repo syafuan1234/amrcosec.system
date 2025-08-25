@@ -33,6 +33,12 @@ def choose_email_template(request, company_id, template_id):
     company.director_set.exclude(email="").values_list("email", flat=True)
     )
 
+    contact_person_emails = list(
+    company.contactperson_set.exclude(email="").values_list("email", flat=True)
+    )
+
+    recipients = ", ".join(set(director_emails + list(contact_person_emails)))
+
     # FIX: contact persons must be queried as a set
     contact_person_emails = list(
     company.contactperson_set.exclude(email="").values_list("email", flat=True)
