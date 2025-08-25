@@ -19,6 +19,7 @@ from django.core.mail import EmailMessage
 from .utils.word_to_pdf import convert_docx_to_pdf
 from django.contrib import messages
 from docx import Document
+from .utils.doc_build import build_context, render_docx_bytes
 
 # === New Function for Document Auto Generation ===
 
@@ -292,10 +293,10 @@ def generate_company_doc(request, company_id, template_id, director_id=None):
 
         # Handle action: preview, email, or download Word
         if action == "preview":
-            buf = io.BytesIO()
-            doc.save(buf)
-            buf.seek(0)
-            pdf_bytes = convert_docx_to_pdf_bytes(buf.getvalue())  # ✅ use helper
+            ctx = build_context(company)
+            # Use the same .docx template path you already use
+            docx_bytes = render_docx_bytes(doc_template.local_path, ctx)  # replace with correct path attr
+            pdf_bytes = convert_docx_to_pdf(docx_bytes)
             return HttpResponse(pdf_bytes, content_type="application/pdf")
 
 
